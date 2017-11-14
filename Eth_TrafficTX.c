@@ -3,27 +3,27 @@
 #include <MDR32F9Qx_eth.h>
 #include <MDR32F9Qx_eeprom.h>
 
-//	Определение констант для удобства работы
-#define FR_MAC_SIZE 		12												//	Длина МАС полей в заголовке
-#define FR_L_SIZE   		2													//  Длина поля Lenth/Eth Type
-#define FR_HEAD_SIZE   	(FR_MAC_SIZE + FR_L_SIZE) // 	Длина Заголовка
+//	РћРїСЂРµРґРµР»РµРЅРёРµ РєРѕРЅСЃС‚Р°РЅС‚ РґР»СЏ СѓРґРѕР±СЃС‚РІР° СЂР°Р±РѕС‚С‹
+#define FR_MAC_SIZE 		12												//	Р”Р»РёРЅР° РњРђРЎ РїРѕР»РµР№ РІ Р·Р°РіРѕР»РѕРІРєРµ
+#define FR_L_SIZE   		2													//  Р”Р»РёРЅР° РїРѕР»СЏ Lenth/Eth Type
+#define FR_HEAD_SIZE   	(FR_MAC_SIZE + FR_L_SIZE) // 	Р”Р»РёРЅР° Р—Р°РіРѕР»РѕРІРєР°
 
-// Массивы для считывания входящих и формирования посылаемых фреймов, 
-// Должны располагаться в адресах начиная с 0х2010_0000 для возможности работы DMA в режиме FIFO
+// РњР°СЃСЃРёРІС‹ РґР»СЏ СЃС‡РёС‚С‹РІР°РЅРёСЏ РІС…РѕРґСЏС‰РёС… Рё С„РѕСЂРјРёСЂРѕРІР°РЅРёСЏ РїРѕСЃС‹Р»Р°РµРјС‹С… С„СЂРµР№РјРѕРІ, 
+// Р”РѕР»Р¶РЅС‹ СЂР°СЃРїРѕР»Р°РіР°С‚СЊСЃСЏ РІ Р°РґСЂРµСЃР°С… РЅР°С‡РёРЅР°СЏ СЃ 0С…2010_0000 РґР»СЏ РІРѕР·РјРѕР¶РЅРѕСЃС‚Рё СЂР°Р±РѕС‚С‹ DMA РІ СЂРµР¶РёРјРµ FIFO
 #define  MAX_ETH_TX_DATA_SIZE 1514 / 4
 #define  MAX_ETH_RX_DATA_SIZE 1514 / 4
 uint8_t  FrameTx[MAX_ETH_TX_DATA_SIZE] __attribute__((section("EXECUTABLE_MEMORY_SECTION"))) __attribute__ ((aligned (4)));
 uint32_t FrameRx[MAX_ETH_RX_DATA_SIZE] __attribute__((section("EXECUTABLE_MEMORY_SECTION"))) __attribute__ ((aligned (4)));
 
-//	MAC адрес микроконтроллера
+//	MAC Р°РґСЂРµСЃ РјРёРєСЂРѕРєРѕРЅС‚СЂРѕР»Р»РµСЂР°
 uint8_t  MAC_SRC [] = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc};
 
-//	Обработка входящего фрейма и высылка ответа
+//	РћР±СЂР°Р±РѕС‚РєР° РІС…РѕРґСЏС‰РµРіРѕ С„СЂРµР№РјР° Рё РІС‹СЃС‹Р»РєР° РѕС‚РІРµС‚Р°
 void ETH_TaskProcess(MDR_ETHERNET_TypeDef * ETHERNETx);
-//	Заполнение массива FrameTx фреймом заданной длины
+//	Р—Р°РїРѕР»РЅРµРЅРёРµ РјР°СЃСЃРёРІР° FrameTx С„СЂРµР№РјРѕРј Р·Р°РґР°РЅРЅРѕР№ РґР»РёРЅС‹
 void Ethernet_FillFrameTX(uint32_t frameL);
 
-//	Тактирование ядра от HSE, 8МГц на демо-плате
+//	РўР°РєС‚РёСЂРѕРІР°РЅРёРµ СЏРґСЂР° РѕС‚ HSE, 8РњР“С† РЅР° РґРµРјРѕ-РїР»Р°С‚Рµ
 void Clock_Init(void)
 {
 	/* Enable HSE (High Speed External) clock */
@@ -51,59 +51,59 @@ void Clock_Init(void)
 	RST_CLK_CPUclkSelection(RST_CLK_CPUclkCPU_C3);
 }
 
-//	Инициализация блока Ethernet
+//	РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р±Р»РѕРєР° Ethernet
 void Ethernet_Init(void)
 {	
 	static ETH_InitTypeDef  ETH_InitStruct;
 	volatile	uint32_t			ETH_Dilimiter;
 	
-	// Сброс тактирования Ethernet
+	// РЎР±СЂРѕСЃ С‚Р°РєС‚РёСЂРѕРІР°РЅРёСЏ Ethernet
 	ETH_ClockDeInit();
 	
-	//	Включение генератора HSE2 = 25МГц
+	//	Р’РєР»СЋС‡РµРЅРёРµ РіРµРЅРµСЂР°С‚РѕСЂР° HSE2 = 25РњР“С†
 	RST_CLK_HSE2config(RST_CLK_HSE2_ON);
-  while (RST_CLK_HSE2status() != SUCCESS);	
+    while (RST_CLK_HSE2status() != SUCCESS);	
 	
-	// Тактирование PHY от HSE2 = 25МГц
+	// РўР°РєС‚РёСЂРѕРІР°РЅРёРµ PHY РѕС‚ HSE2 = 25РњР“С†
 	ETH_PHY_ClockConfig(ETH_PHY_CLOCK_SOURCE_HSE2, ETH_PHY_HCLKdiv1);
 
-	// Без делителя
+	// Р‘РµР· РґРµР»РёС‚РµР»СЏ
 	ETH_BRGInit(ETH_HCLKdiv1);
 
-	// Включение тактирования блока MAC
+	// Р’РєР»СЋС‡РµРЅРёРµ С‚Р°РєС‚РёСЂРѕРІР°РЅРёСЏ Р±Р»РѕРєР° MAC
 	ETH_ClockCMD(ETH_CLK1, ENABLE);
 
 
-	//	Сброс регистров блока MAC
+	//	РЎР±СЂРѕСЃ СЂРµРіРёСЃС‚СЂРѕРІ Р±Р»РѕРєР° MAC
 	ETH_DeInit(MDR_ETHERNET1);
 
-	//  Инициализация настроек Ethernet по умолчанию
+	//  РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РЅР°СЃС‚СЂРѕРµРє Ethernet РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 	ETH_StructInit(&ETH_InitStruct);
 	
-	//	Переопределение настроек PHY:
-	//   - разрешение автонастройки, передатчик и приемник включены
+	//	РџРµСЂРµРѕРїСЂРµРґРµР»РµРЅРёРµ РЅР°СЃС‚СЂРѕРµРє PHY:
+	//   - СЂР°Р·СЂРµС€РµРЅРёРµ Р°РІС‚РѕРЅР°СЃС‚СЂРѕР№РєРё, РїРµСЂРµРґР°С‚С‡РёРє Рё РїСЂРёРµРјРЅРёРє РІРєР»СЋС‡РµРЅС‹
 	ETH_InitStruct.ETH_PHY_Mode = ETH_PHY_MODE_AutoNegotiation;
 	ETH_InitStruct.ETH_Transmitter_RST = SET;
 	ETH_InitStruct.ETH_Receiver_RST = SET;
 	
-	//	Режим работы буферов
+	//	Р РµР¶РёРј СЂР°Р±РѕС‚С‹ Р±СѓС„РµСЂРѕРІ
 	ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_LINEAR;	
 	//ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_FIFO;	
 	//ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_AUTOMATIC_CHANGE_POINTERS;
 
-  // HASH - Фильтрация отключена 
+  // HASH - Р¤РёР»СЊС‚СЂР°С†РёСЏ РѕС‚РєР»СЋС‡РµРЅР° 
 	ETH_InitStruct.ETH_Source_Addr_HASH_Filter = DISABLE;
 
-	//	Задание МАС адреса микроконтроллера
+	//	Р—Р°РґР°РЅРёРµ РњРђРЎ Р°РґСЂРµСЃР° РјРёРєСЂРѕРєРѕРЅС‚СЂРѕР»Р»РµСЂР°
 	ETH_InitStruct.ETH_MAC_Address[2] = (MAC_SRC[5] << 8) | MAC_SRC[4];
 	ETH_InitStruct.ETH_MAC_Address[1] = (MAC_SRC[3] << 8) | MAC_SRC[2];
 	ETH_InitStruct.ETH_MAC_Address[0] = (MAC_SRC[1] << 8) | MAC_SRC[0];
 
-	//	Разделение общей памяти на буферы для приемника и передатчика
+	//	Р Р°Р·РґРµР»РµРЅРёРµ РѕР±С‰РµР№ РїР°РјСЏС‚Рё РЅР° Р±СѓС„РµСЂС‹ РґР»СЏ РїСЂРёРµРјРЅРёРєР° Рё РїРµСЂРµРґР°С‚С‡РёРєР°
 	ETH_InitStruct.ETH_Dilimiter = 0x1000;
 
-	//	Разрешаем прием пакетов только на свой адрес, 
-	//	Прием коротких пакетов также разрешен
+	//	Р Р°Р·СЂРµС€Р°РµРј РїСЂРёРµРј РїР°РєРµС‚РѕРІ С‚РѕР»СЊРєРѕ РЅР° СЃРІРѕР№ Р°РґСЂРµСЃ, 
+	//	РџСЂРёРµРј РєРѕСЂРѕС‚РєРёС… РїР°РєРµС‚РѕРІ С‚Р°РєР¶Рµ СЂР°Р·СЂРµС€РµРЅ
 	ETH_InitStruct.ETH_Receive_All_Packets 			  = DISABLE;
 	ETH_InitStruct.ETH_Short_Frames_Reception 		= ENABLE;
 	ETH_InitStruct.ETH_Long_Frames_Reception 	    = DISABLE;
@@ -113,20 +113,20 @@ void Ethernet_Init(void)
 	ETH_InitStruct.ETH_Unicast_Frames_Reception 	= ENABLE;
 	ETH_InitStruct.ETH_Source_Addr_HASH_Filter 	  = DISABLE;
 
-	//	Инициализация блока Ethernet
+	//	РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р±Р»РѕРєР° Ethernet
 	ETH_Init(MDR_ETHERNET1, &ETH_InitStruct);
 
-	// Запуск блока PHY
+	// Р—Р°РїСѓСЃРє Р±Р»РѕРєР° PHY
 	ETH_PHYCmd(MDR_ETHERNET1, ENABLE);		
 }
 
 void Ethernet_Start(void)
 {
-	// Запуск блока Ethernet
+	// Р—Р°РїСѓСЃРє Р±Р»РѕРєР° Ethernet
 	ETH_Start(MDR_ETHERNET1);
 }
 
-//	Цикл обработки входящих фреймов
+//	Р¦РёРєР» РѕР±СЂР°Р±РѕС‚РєРё РІС…РѕРґСЏС‰РёС… С„СЂРµР№РјРѕРІ
 void Ethernet_ProcessLoop(void)
 {
 	while(1){
@@ -134,77 +134,77 @@ void Ethernet_ProcessLoop(void)
 	}
 }
 
-//	Обработка входящего фрейма и высылка ответа
+//	РћР±СЂР°Р±РѕС‚РєР° РІС…РѕРґСЏС‰РµРіРѕ С„СЂРµР№РјР° Рё РІС‹СЃС‹Р»РєР° РѕС‚РІРµС‚Р°
 void ETH_TaskProcess(MDR_ETHERNET_TypeDef * ETHERNETx)
 {
-	//	Поле состояния приема пакета
+	//	РџРѕР»Рµ СЃРѕСЃС‚РѕСЏРЅРёСЏ РїСЂРёРµРјР° РїР°РєРµС‚Р°
 	volatile ETH_StatusPacketReceptionTypeDef ETH_StatusPacketReceptionStruct;
 	
-	//	Указатель для работы с входными данными
+	//	РЈРєР°Р·Р°С‚РµР»СЊ РґР»СЏ СЂР°Р±РѕС‚С‹ СЃ РІС…РѕРґРЅС‹РјРё РґР°РЅРЅС‹РјРё
 	uint8_t * ptr_inpFrame = (uint8_t *) &FrameRx[0];
-	//	Входные параметры от PC
+	//	Р’С…РѕРґРЅС‹Рµ РїР°СЂР°РјРµС‚СЂС‹ РѕС‚ PC
 	uint16_t frameL = 0;
 	uint16_t frameCount = 0;
-	//	Внутренние переменные
+	//	Р’РЅСѓС‚СЂРµРЅРЅРёРµ РїРµСЂРµРјРµРЅРЅС‹Рµ
 	uint32_t i;
 	volatile uint32_t isTxBuffBusy = 0;
 
-	//	Проверяем наличие в бефере приемника данным для считывания
+	//	РџСЂРѕРІРµСЂСЏРµРј РЅР°Р»РёС‡РёРµ РІ Р±РµС„РµСЂРµ РїСЂРёРµРјРЅРёРєР° РґР°РЅРЅС‹Рј РґР»СЏ СЃС‡РёС‚С‹РІР°РЅРёСЏ
 	if(ETHERNETx->ETH_R_Head != ETHERNETx->ETH_R_Tail)
 	{
-		//	Считывание входного фрейма
+		//	РЎС‡РёС‚С‹РІР°РЅРёРµ РІС…РѕРґРЅРѕРіРѕ С„СЂРµР№РјР°
 		ETH_StatusPacketReceptionStruct.Status = ETH_ReceivedFrame(ETHERNETx, FrameRx);
 		
-		//	Считывание длины ответного фрейма
+		//	РЎС‡РёС‚С‹РІР°РЅРёРµ РґР»РёРЅС‹ РѕС‚РІРµС‚РЅРѕРіРѕ С„СЂРµР№РјР°
 		frameL = (uint16_t)((ptr_inpFrame[FR_HEAD_SIZE] << 8) | (ptr_inpFrame[FR_HEAD_SIZE + 1]));
-		//  Считывание количества ответных фреймов, посылаем как минимум один пакет
+		//  РЎС‡РёС‚С‹РІР°РЅРёРµ РєРѕР»РёС‡РµСЃС‚РІР° РѕС‚РІРµС‚РЅС‹С… С„СЂРµР№РјРѕРІ, РїРѕСЃС‹Р»Р°РµРј РєР°Рє РјРёРЅРёРјСѓРј РѕРґРёРЅ РїР°РєРµС‚
 		frameCount = (uint16_t)((ptr_inpFrame[FR_HEAD_SIZE + 2] << 8) | (ptr_inpFrame[FR_HEAD_SIZE + 3]));
 		if (frameCount <= 0)
 			frameCount = 1;		
 		
-		// 	Заполнение массива FrameTx пакетом отправки
+		// 	Р—Р°РїРѕР»РЅРµРЅРёРµ РјР°СЃСЃРёРІР° FrameTx РїР°РєРµС‚РѕРј РѕС‚РїСЂР°РІРєРё
 		Ethernet_FillFrameTX(frameL);
 		
-		//	Посылка пакетов в цикле
+		//	РџРѕСЃС‹Р»РєР° РїР°РєРµС‚РѕРІ РІ С†РёРєР»Рµ
 		for (i = 0; i < frameCount; ++i)
 		{
-			//	Заполняем индекс текущего пакета, в первых байтах Payload
-			//	FR_HEAD_SIZE + 4 - Это заголовок + "Поле управления передачей пакета"
+			//	Р—Р°РїРѕР»РЅСЏРµРј РёРЅРґРµРєСЃ С‚РµРєСѓС‰РµРіРѕ РїР°РєРµС‚Р°, РІ РїРµСЂРІС‹С… Р±Р°Р№С‚Р°С… Payload
+			//	FR_HEAD_SIZE + 4 - Р­С‚Рѕ Р·Р°РіРѕР»РѕРІРѕРє + "РџРѕР»Рµ СѓРїСЂР°РІР»РµРЅРёСЏ РїРµСЂРµРґР°С‡РµР№ РїР°РєРµС‚Р°"
 			FrameTx[FR_HEAD_SIZE + 4] = (uint8_t)(i >> 8);
 			FrameTx[FR_HEAD_SIZE + 5] = (uint8_t)(i & 0xFF);
 			
-			//  Ожидаем опустошения буфера передатчика наполовину
-			//  Размер буфера приемника задан Delimeter и равен 4Кбайт
-			//  Максимальная длина пакета может составлять 1518 байт
-			//	Выбор условия опустошения на половину дает бОльшую надежность при интенсивном обмене большими пакетами.			
+			//  РћР¶РёРґР°РµРј РѕРїСѓСЃС‚РѕС€РµРЅРёСЏ Р±СѓС„РµСЂР° РїРµСЂРµРґР°С‚С‡РёРєР° РЅР°РїРѕР»РѕРІРёРЅСѓ
+			//  Р Р°Р·РјРµСЂ Р±СѓС„РµСЂР° РїСЂРёРµРјРЅРёРєР° Р·Р°РґР°РЅ Delimeter Рё СЂР°РІРµРЅ 4РљР±Р°Р№С‚
+			//  РњР°РєСЃРёРјР°Р»СЊРЅР°СЏ РґР»РёРЅР° РїР°РєРµС‚Р° РјРѕР¶РµС‚ СЃРѕСЃС‚Р°РІР»СЏС‚СЊ 1518 Р±Р°Р№С‚
+			//	Р’С‹Р±РѕСЂ СѓСЃР»РѕРІРёСЏ РѕРїСѓСЃС‚РѕС€РµРЅРёСЏ РЅР° РїРѕР»РѕРІРёРЅСѓ РґР°РµС‚ Р±РћР»СЊС€СѓСЋ РЅР°РґРµР¶РЅРѕСЃС‚СЊ РїСЂРё РёРЅС‚РµРЅСЃРёРІРЅРѕРј РѕР±РјРµРЅРµ Р±РѕР»СЊС€РёРјРё РїР°РєРµС‚Р°РјРё.			
 			do {
 				isTxBuffBusy = ETH_GetFlagStatus(ETHERNETx, ETH_MAC_FLAG_X_HALF) == SET;				
 			}	
 			while (isTxBuffBusy);
 
-			//  Посылка пакета
+			//  РџРѕСЃС‹Р»РєР° РїР°РєРµС‚Р°
 			ETH_SendFrame(ETHERNETx, (uint32_t *) FrameTx, frameL);
 		}
 	}
 }
 
-//	Заполнение массива FrameTx фреймом заданной длины
+//	Р—Р°РїРѕР»РЅРµРЅРёРµ РјР°СЃСЃРёРІР° FrameTx С„СЂРµР№РјРѕРј Р·Р°РґР°РЅРЅРѕР№ РґР»РёРЅС‹
 void Ethernet_FillFrameTX(uint32_t frameL)
 {
 	uint32_t i = 0;
-	//	Определение колличества данных в Payload
+	//	РћРїСЂРµРґРµР»РµРЅРёРµ РєРѕР»Р»РёС‡РµСЃС‚РІР° РґР°РЅРЅС‹С… РІ Payload
 	uint32_t payloadL = frameL - FR_HEAD_SIZE;
-	//	Указатель на входящий фрейм для копирования SrcMAC
+	//	РЈРєР°Р·Р°С‚РµР»СЊ РЅР° РІС…РѕРґСЏС‰РёР№ С„СЂРµР№Рј РґР»СЏ РєРѕРїРёСЂРѕРІР°РЅРёСЏ SrcMAC
 	uint8_t * ptr_inpFrame = (uint8_t *) &FrameRx[0];
-	//	Указатель на заполняемый фрейм, 
-	//  оставлено место "Поле управления передачей пакета"
+	//	РЈРєР°Р·Р°С‚РµР»СЊ РЅР° Р·Р°РїРѕР»РЅСЏРµРјС‹Р№ С„СЂРµР№Рј, 
+	//  РѕСЃС‚Р°РІР»РµРЅРѕ РјРµСЃС‚Рѕ "РџРѕР»Рµ СѓРїСЂР°РІР»РµРЅРёСЏ РїРµСЂРµРґР°С‡РµР№ РїР°РєРµС‚Р°"
 	uint8_t * ptr_TXFrame  = (uint8_t *) &FrameTx[4];
 
-	//	Запись "Поле управления передачей пакета"
-	//  Указывается длина фрейма
+	//	Р—Р°РїРёСЃСЊ "РџРѕР»Рµ СѓРїСЂР°РІР»РµРЅРёСЏ РїРµСЂРµРґР°С‡РµР№ РїР°РєРµС‚Р°"
+	//  РЈРєР°Р·С‹РІР°РµС‚СЃСЏ РґР»РёРЅР° С„СЂРµР№РјР°
 	*(uint32_t *)&FrameTx[0] = frameL;
 	
-	//	Копируем адрес PC из входного пакета в DestMAC
+	//	РљРѕРїРёСЂСѓРµРј Р°РґСЂРµСЃ PC РёР· РІС…РѕРґРЅРѕРіРѕ РїР°РєРµС‚Р° РІ DestMAC
 	ptr_TXFrame[0] 	= ptr_inpFrame[6];
 	ptr_TXFrame[1] 	= ptr_inpFrame[7];
 	ptr_TXFrame[2] 	= ptr_inpFrame[8];
@@ -212,7 +212,7 @@ void Ethernet_FillFrameTX(uint32_t frameL)
 	ptr_TXFrame[4] 	= ptr_inpFrame[10];
 	ptr_TXFrame[5] 	= ptr_inpFrame[11];		
 	
-	//	Заполняем SrcMAC
+	//	Р—Р°РїРѕР»РЅСЏРµРј SrcMAC
 	ptr_TXFrame[6] 	= MAC_SRC[0];
 	ptr_TXFrame[7] 	= MAC_SRC[1];
 	ptr_TXFrame[8] 	= MAC_SRC[2];
@@ -220,11 +220,11 @@ void Ethernet_FillFrameTX(uint32_t frameL)
 	ptr_TXFrame[10] = MAC_SRC[4];
 	ptr_TXFrame[11] = MAC_SRC[5];	
 
-  // Заполняем поле Length размером Payload  в байтах
+  // Р—Р°РїРѕР»РЅСЏРµРј РїРѕР»Рµ Length СЂР°Р·РјРµСЂРѕРј Payload  РІ Р±Р°Р№С‚Р°С…
 	ptr_TXFrame[12] = (uint8_t)(payloadL >> 8);
 	ptr_TXFrame[13] = (uint8_t)(payloadL & 0xFF);	
 
-	//	Заполняем Payload значениями, например индексами
+	//	Р—Р°РїРѕР»РЅСЏРµРј Payload Р·РЅР°С‡РµРЅРёСЏРјРё, РЅР°РїСЂРёРјРµСЂ РёРЅРґРµРєСЃР°РјРё
 	for (i = 0; i < payloadL; ++i)
 		ptr_TXFrame[FR_HEAD_SIZE + i] = i;	
 }
