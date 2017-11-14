@@ -1,7 +1,8 @@
 #include <MDR32F9Qx_port.h>
 #include <MDR32F9Qx_rst_clk.h>
-#include <MDR32F9Qx_eth.h>
 #include <MDR32F9Qx_eeprom.h>
+
+#include "MDR32F9Qx_eth.h"
 
 //	Определение констант для удобства работы
 #define FR_MAC_SIZE 		12												//	Длина МАС полей в заголовке

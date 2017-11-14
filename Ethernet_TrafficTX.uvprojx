@@ -335,7 +335,7 @@
               <MiscControls></MiscControls>
               <Define></Define>
               <Undefine></Undefine>
-              <IncludePath></IncludePath>
+              <IncludePath>.\BugFix</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -389,6 +389,11 @@
               <FileType>1</FileType>
               <FilePath>.\Eth_TrafficTX.c</FilePath>
             </File>
+            <File>
+              <FileName>MDR32F9Qx_eth.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\BugFix\MDR32F9Qx_eth.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -423,12 +428,6 @@
         </targetInfos>
       </component>
       <component Cclass="Drivers" Cgroup="EEMPROM" Cvendor="Keil" Cversion="1.3.1" condition="CON_MDR1986BXX">
-        <package name="MDR1986BExx" schemaVersion="1.3" url="http://www.keil.com/pack/" vendor="Keil" version="1.4"/>
-        <targetInfos>
-          <targetInfo name="Target 1"/>
-        </targetInfos>
-      </component>
-      <component Cclass="Drivers" Cgroup="Ethernet" Cvendor="Keil" Cversion="1.3.1" condition="CON_MDR1986BEXT">
         <package name="MDR1986BExx" schemaVersion="1.3" url="http://www.keil.com/pack/" vendor="Keil" version="1.4"/>
         <targetInfos>
           <targetInfo name="Target 1"/>
