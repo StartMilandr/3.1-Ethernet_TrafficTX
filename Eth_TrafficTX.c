@@ -87,8 +87,8 @@ void Ethernet_Init(void)
 	ETH_InitStruct.ETH_Receiver_RST = SET;
 	
 	//	Режим работы буферов
-	ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_LINEAR;	
-	//ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_FIFO;	
+	//ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_LINEAR;	
+	ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_FIFO;	
 	//ETH_InitStruct.ETH_Buffer_Mode = ETH_BUFFER_MODE_AUTOMATIC_CHANGE_POINTERS;
 
   // HASH - Фильтрация отключена 
